@@ -275,7 +275,7 @@ pytest tests/ -v -m "not integration"
 # Run integration tests (requires ROS/MoveIt)
 source /opt/ros/$ROS_DISTRO/setup.bash
 ros2 launch moveit_resources_panda_moveit_config demo.launch.py  # Terminal 1
-pytest tests/integration/ -v  # Terminal 2
+pytest tests/integration/ -v -m integration  # Terminal 2
 
 # Run example clients
 python examples/panda_example.py
