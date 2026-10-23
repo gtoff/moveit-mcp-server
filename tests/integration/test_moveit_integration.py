@@ -62,6 +62,40 @@ class TestMoveItWrapperIntegration:
             assert isinstance(joint_positions, list)
             assert len(joint_positions) > 0
 
+    def test_compute_ik_seeds_from_current_state(self, wrapper):
+        """compute_ik returns joint values near the current state (FK of the
+        current joints, then IK back); a zero seed could land ~2π away."""
+        with wrapper.planning_scene_monitor.read_only() as scene:
+            current = list(
+                scene.current_state.get_joint_group_positions("panda_arm")
+            )
+
+        # FK to a reachable pose (must succeed for the test to be valid).
+        pose = wrapper.compute_fk("panda_arm", current)
+        assert pose is not None, "FK on current joints failed — fixture issue"
+
+        ik_solution = wrapper.compute_ik("panda_arm", pose, timeout=5.0)
+        if ik_solution is None:
+            pytest.skip(
+                "IK returned None on a self-reachable pose — solver or "
+                "kinematics plugin issue, not a seeding issue"
+            )
+
+        # 1 rad: far above solver tolerance, far below a 2π wrap-around.
+        assert len(ik_solution) == len(current), (
+            f"IK returned {len(ik_solution)} joints, expected "
+            f"{len(current)} for panda_arm"
+        )
+        for joint_ik, joint_cur in zip(ik_solution, current):
+            diff = abs(joint_ik - joint_cur)
+            assert diff < 1.0, (
+                f"IK joint {joint_ik:.3f} rad differs from seed "
+                f"{joint_cur:.3f} rad by {diff:.3f} rad. With a correct "
+                f"seed this should be near zero. A diff near 2π (~6.28) "
+                f"indicates the solver is not seeded from the current "
+                f"robot state."
+            )
+
     def test_check_state_collision_free(self, wrapper, sample_joint_state):
         """Test collision check with a known collision-free state."""
         result = wrapper.check_state_collision(

@@ -533,18 +533,23 @@ class MoveItWrapper:
         attempts: int = 10,
     ) -> Optional[List[float]]:
         """
-        Compute inverse kinematics.
+        Compute inverse kinematics, seeded from the group's current joint positions,
+        so the solver returns the solution nearest the robot's configuration.
 
         Args:
             group_name: Planning group name
             target_pose: Target pose
             timeout: IK timeout
-            attempts: Number of attempts
+            attempts: Number of attempts (not used by set_from_ik)
 
         Returns:
             Joint positions if IK succeeded, None otherwise
         """
+        # RobotState has no copy constructor in moveit_py: copy the group's joints in.
+        with self.planning_scene_monitor.read_only() as scene:
+            seed_positions = scene.current_state.get_joint_group_positions(group_name)
         robot_state = RobotState(self.robot_model)
+        robot_state.set_joint_group_positions(group_name, list(seed_positions))
         joint_model_group = self.robot_model.get_joint_model_group(group_name)
 
         # Get the last link in the chain (tip link)
