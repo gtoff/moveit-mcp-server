@@ -190,11 +190,7 @@ def get_execution_tools(
                 if target_type == "pose":
                     position = target["position"]
                     orientation = target["orientation"]
-                    # Resolve frame_id: caller-supplied if present,
-                    # otherwise the robot's MoveIt planning frame
-                    # (configured in the MoveIt config). Avoids the
-                    # previous behavior of silently defaulting to
-                    # "world" when the caller omits frame_id.
+                    # Caller's frame, else the MoveIt planning frame
                     if "frame_id" in target:
                         frame_id = target["frame_id"]
                     else:
