@@ -533,54 +533,19 @@ class MoveItWrapper:
         attempts: int = 10,
     ) -> Optional[List[float]]:
         """
-        Compute inverse kinematics, seeded from the robot's current state.
-
-        The KDL/numerical IK solvers used by MoveIt converge to whichever
-        solution branch is closest to their starting (seed) configuration.
-        For a 6-DOF arm with revolute joints, every Cartesian target has
-        up to 8 IK solutions plus their ±2π wrap-around equivalents on
-        the wrist / shoulder joints.
-
-        Previously this method created a fresh ``RobotState(robot_model)``
-        whose joints are at the URDF's default values (typically zero).
-        From a zero seed the solver had no preference for the natural
-        branch and would frequently converge on wrap-around solutions
-        (e.g. ``shoulder_lift = -4.44 rad`` instead of the near-current
-        ``-1.5 rad``). Downstream callers using ``compute_ik`` + ``plan_to_
-        joint_state`` then had to traverse a ~2π joint sweep from the
-        actual current state to the wrap-around target, which usually
-        passes through self-collision configurations and surfaces as
-        generic "Planning failed".
-
-        Seeding the IK solver's robot state with the group's current
-        joints restores the solver's bias toward the branch nearest the
-        robot's actual configuration. Only the group's joints matter
-        for seeding because the arm's kinematic chain is the only thing
-        the IK solver evaluates. The current state is read via the
-        planning scene monitor's read-only context (not mutated) so the
-        monitor's view is not disturbed.
+        Compute inverse kinematics, seeded from the group's current joint positions,
+        so the solver returns the solution nearest the robot's configuration.
 
         Args:
             group_name: Planning group name
             target_pose: Target pose
             timeout: IK timeout
-            attempts: Number of attempts (not currently threaded into
-                set_from_ik; kept for API stability)
+            attempts: Number of attempts (not used by set_from_ik)
 
         Returns:
             Joint positions if IK succeeded, None otherwise
         """
-        # Seed the IK solver with the current joints of the group so
-        # the solver converges to the IK branch nearest the robot's
-        # actual joint configuration, not the URDF-default seed which
-        # yields wrap-around branches.
-        #
-        # NOTE on the constructor: moveit_py's RobotState binding only
-        # exposes RobotState(robot_model); there is no copy constructor.
-        # So we create a fresh state and copy the group's current joints
-        # into it. Only the group's joints matter for IK seeding because
-        # the arm's kinematic chain is the only thing the IK solver
-        # evaluates.
+        # RobotState has no copy constructor in moveit_py: copy the group's joints in.
         with self.planning_scene_monitor.read_only() as scene:
             seed_positions = scene.current_state.get_joint_group_positions(group_name)
         robot_state = RobotState(self.robot_model)

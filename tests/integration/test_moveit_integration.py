@@ -63,23 +63,8 @@ class TestMoveItWrapperIntegration:
             assert len(joint_positions) > 0
 
     def test_compute_ik_seeds_from_current_state(self, wrapper):
-        """compute_ik must return joint values near the current robot state.
-
-        Regression test for the seed-from-current-state fix. The KDL /
-        numerical IK solver converges to whichever branch is closest to
-        the seed configuration. If the seed is a zero RobotState (the
-        previous behaviour), the solver can land on ±2π wrap-around
-        branches that look correct in Cartesian space but require a
-        ~6 rad joint sweep from the actual current configuration,
-        causing downstream plans to fail in self-collision.
-
-        Reproduce the test condition: take FK of the current joints to
-        get a guaranteed-reachable pose, then ask compute_ik to find
-        joint values for that same pose. With a correct seed the
-        result should match the current configuration within solver
-        tolerance. Without the fix, individual joints can differ by
-        ~2π.
-        """
+        """compute_ik returns joint values near the current state (FK of the
+        current joints, then IK back); a zero seed could land ~2π away."""
         with wrapper.planning_scene_monitor.read_only() as scene:
             current = list(
                 scene.current_state.get_joint_group_positions("panda_arm")
@@ -96,11 +81,7 @@ class TestMoveItWrapperIntegration:
                 "kinematics plugin issue, not a seeding issue"
             )
 
-        # Each joint should sit close to the seed. The threshold is set
-        # well above solver tolerance (~1e-3) but well below the 2π
-        # wrap-around distance (~6.28). Picking 1.0 rad gives plenty of
-        # margin for a correctly-seeded IK and immediately catches a
-        # zero-seed wrap-around.
+        # 1 rad: far above solver tolerance, far below a 2π wrap-around.
         assert len(ik_solution) == len(current), (
             f"IK returned {len(ik_solution)} joints, expected "
             f"{len(current)} for panda_arm"
