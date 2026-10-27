@@ -580,11 +580,12 @@ class MoveItWrapper:
         Returns:
             True if in collision, False otherwise
         """
-        robot_state = RobotState(self.robot_model)
-        joint_model_group = self.robot_model.get_joint_model_group(group_name)
-        robot_state.set_joint_group_positions(group_name, joint_positions)
-
+        # Current state for the other joints; without update() there are no link transforms
         with self.planning_scene_monitor.read_only() as scene:
+            robot_state = RobotState(self.robot_model)
+            robot_state.joint_positions = scene.current_state.joint_positions
+            robot_state.set_joint_group_positions(group_name, joint_positions)
+            robot_state.update()
             return scene.is_state_colliding(robot_state, group_name)
 
     def add_collision_box(
