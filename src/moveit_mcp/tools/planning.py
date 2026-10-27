@@ -42,7 +42,7 @@ def get_planning_tools(
             group: Planning group name (e.g., "panda_arm")
             position: Target position [x, y, z] in meters
             orientation: Target orientation as quaternion [x, y, z, w]
-            frame_id: Reference frame (default: "world")
+            frame_id: Reference frame (default: the MoveIt planning frame)
             planner_id: Optional planner ID (default: use configured)
             timeout: Planning timeout in seconds (default: 5.0)
 
@@ -54,7 +54,12 @@ def get_planning_tools(
             group = arguments["group"]
             position = arguments["position"]
             orientation = arguments["orientation"]
-            frame_id = arguments.get("frame_id", "world")
+            # Caller's frame, else the MoveIt planning frame
+            if "frame_id" in arguments:
+                frame_id = arguments["frame_id"]
+            else:
+                with moveit.planning_scene_monitor.read_only() as scene:
+                    frame_id = scene.planning_frame
             planner_id = arguments.get("planner_id")
             timeout = arguments.get("timeout", 5.0)
 
@@ -250,7 +255,7 @@ def get_planning_tools(
                     },
                     "frame_id": {
                         "type": "string",
-                        "description": "Reference frame (default: world)",
+                        "description": "Reference frame (default: the MoveIt planning frame)",
                     },
                     "planner_id": {"type": "string", "description": "Optional planner ID"},
                     "timeout": {
