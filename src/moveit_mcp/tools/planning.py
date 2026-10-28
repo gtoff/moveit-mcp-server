@@ -1,6 +1,7 @@
 """Planning tool implementations."""
 
 import logging
+import math
 from typing import Any, Dict, Optional
 
 from ..async_ops import AsyncOperationManager, OperationType
@@ -221,6 +222,11 @@ def get_planning_tools(
             if status["status"] == "completed":
                 if status["result"]:
                     result_text += "Planning succeeded! Trajectory is ready for execution.\n"
+                    end = moveit.trajectory_end(status["result"])
+                    if end:
+                        result_text += "Joint goal (move from the start of the plan):\n"
+                        for name, pos, delta in zip(end["joint_names"], end["joint_positions"], end["deltas"]):
+                            result_text += f"  {name}: {pos:.4f} rad ({math.degrees(delta):+.1f} deg)\n"
                 else:
                     result_text += "Planning failed: No valid path found.\n"
             elif status["status"] == "failed":
