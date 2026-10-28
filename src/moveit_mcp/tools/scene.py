@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from ..moveit_wrapper import MoveItWrapper
+from .errors import log_tool_error
 
 try:
     from geometry_msgs.msg import Pose
@@ -82,7 +83,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             ]
 
         except Exception as e:
-            logger.error(f"Error in add_collision_box: {e}", exc_info=True)
+            log_tool_error(logger, "add_collision_box", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def add_collision_sphere_handler(arguments: dict) -> list:
@@ -127,7 +128,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             ]
 
         except Exception as e:
-            logger.error(f"Error in add_collision_sphere: {e}", exc_info=True)
+            log_tool_error(logger, "add_collision_sphere", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def remove_collision_object_handler(arguments: dict) -> list:
@@ -153,7 +154,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             ]
 
         except Exception as e:
-            logger.error(f"Error in remove_collision_object: {e}", exc_info=True)
+            log_tool_error(logger, "remove_collision_object", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def clear_planning_scene_handler(arguments: dict) -> list:
@@ -174,7 +175,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             ]
 
         except Exception as e:
-            logger.error(f"Error in clear_planning_scene: {e}", exc_info=True)
+            log_tool_error(logger, "clear_planning_scene", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def list_collision_objects_handler(arguments: dict) -> list:
@@ -198,7 +199,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             return [TextContent(type="text", text=result_text)]
 
         except Exception as e:
-            logger.error(f"Error in list_collision_objects: {e}", exc_info=True)
+            log_tool_error(logger, "list_collision_objects", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def check_state_collision_handler(arguments: dict) -> list:
@@ -234,7 +235,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
                 ]
 
         except Exception as e:
-            logger.error(f"Error in check_state_collision: {e}", exc_info=True)
+            log_tool_error(logger, "check_state_collision", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     # Define tool specifications

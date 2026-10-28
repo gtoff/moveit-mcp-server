@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 from ..async_ops import AsyncOperationManager, OperationType
 from ..moveit_wrapper import MoveItWrapper
+from .errors import log_tool_error
 
 try:
     from geometry_msgs.msg import Pose
@@ -105,7 +106,7 @@ def get_planning_tools(
             ]
 
         except Exception as e:
-            logger.error(f"Error in plan_to_pose: {e}", exc_info=True)
+            log_tool_error(logger, "plan_to_pose", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def plan_to_joint_state_handler(arguments: dict) -> list:
@@ -152,7 +153,7 @@ def get_planning_tools(
             ]
 
         except Exception as e:
-            logger.error(f"Error in plan_to_joint_state: {e}", exc_info=True)
+            log_tool_error(logger, "plan_to_joint_state", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def plan_to_named_state_handler(arguments: dict) -> list:
@@ -194,7 +195,7 @@ def get_planning_tools(
             ]
 
         except Exception as e:
-            logger.error(f"Error in plan_to_named_state: {e}", exc_info=True)
+            log_tool_error(logger, "plan_to_named_state", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def get_plan_result_handler(arguments: dict) -> list:
@@ -237,7 +238,7 @@ def get_planning_tools(
             return [TextContent(type="text", text=result_text)]
 
         except Exception as e:
-            logger.error(f"Error in get_plan_result: {e}", exc_info=True)
+            log_tool_error(logger, "get_plan_result", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     # Define tool specifications

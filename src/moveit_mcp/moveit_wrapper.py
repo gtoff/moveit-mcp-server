@@ -139,6 +139,8 @@ class MoveItWrapper:
             # For standard moveit_resources packages, use moveit_resources_{robot_name}
             # For custom packages, the robot_name and package_name are separate
             builder = MoveItConfigsBuilder(robot_name, package_name=description_package)
+            # Without this file the builder warns "... doesn't exist" and MoveItPy reads /robot_description,
+            # which on a real robot is the URDF the driver runs with (its calibration included)
             builder = builder.robot_description(file_path=f"config/{robot_name}.urdf.xacro")
             builder = builder.robot_description_semantic(file_path=f"config/{robot_name}.srdf")
             builder = builder.trajectory_execution(file_path="config/moveit_controllers.yaml")
