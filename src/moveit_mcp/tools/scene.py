@@ -40,7 +40,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             position: Center position [x, y, z] in meters
             orientation: Orientation quaternion [x, y, z, w]
             dimensions: Box dimensions [x, y, z] in meters
-            frame_id: Reference frame (default: "world")
+            frame_id: Reference frame (default: the MoveIt planning frame)
 
         Returns:
             Success message
@@ -51,7 +51,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             position = arguments["position"]
             orientation = arguments.get("orientation", [0, 0, 0, 1])
             dimensions = arguments["dimensions"]
-            frame_id = arguments.get("frame_id", "world")
+            frame_id = arguments.get("frame_id")
 
             # Validate inputs
             if len(position) != 3:
@@ -93,7 +93,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             object_id: Unique identifier for the object
             position: Center position [x, y, z] in meters
             radius: Sphere radius in meters
-            frame_id: Reference frame (default: "world")
+            frame_id: Reference frame (default: the MoveIt planning frame)
 
         Returns:
             Success message
@@ -103,7 +103,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             object_id = arguments["object_id"]
             position = arguments["position"]
             radius = arguments["radius"]
-            frame_id = arguments.get("frame_id", "world")
+            frame_id = arguments.get("frame_id")
 
             # Validate inputs
             if len(position) != 3:
@@ -266,7 +266,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
                     },
                     "frame_id": {
                         "type": "string",
-                        "description": "Reference frame (default: world)",
+                        "description": "Reference frame (default: the MoveIt planning frame)",
                     },
                 },
                 "required": ["object_id", "position", "dimensions"],
@@ -290,7 +290,7 @@ def get_scene_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
                     "radius": {"type": "number", "description": "Sphere radius in meters"},
                     "frame_id": {
                         "type": "string",
-                        "description": "Reference frame (default: world)",
+                        "description": "Reference frame (default: the MoveIt planning frame)",
                     },
                 },
                 "required": ["object_id", "position", "radius"],
