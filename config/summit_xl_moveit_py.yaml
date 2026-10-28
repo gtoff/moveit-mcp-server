@@ -19,7 +19,7 @@ planning_pipelines:
 plan_request_params:
   planning_attempts: 1
   planning_pipeline: ompl
-  planner_id: "RRTConnectkConfigDefault"
+  planner_id: "AnytimePathShortening"  # the arm's default_planner_config in ompl_planning.yaml
   planning_time: 5.0
   max_velocity_scaling_factor: 1.0
   max_acceleration_scaling_factor: 1.0
@@ -28,7 +28,7 @@ ompl_rrtc:
   plan_request_params:
     planning_attempts: 1
     planning_pipeline: ompl
-    planner_id: "RRTConnectkConfigDefault"
+    planner_id: "AnytimePathShortening"
     max_velocity_scaling_factor: 1.0
     max_acceleration_scaling_factor: 1.0
     planning_time: 1.0
