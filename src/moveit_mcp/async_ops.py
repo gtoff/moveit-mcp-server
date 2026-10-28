@@ -108,7 +108,10 @@ class AsyncOperationManager:
             RuntimeError: If max concurrent operations exceeded
         """
         async with self._lock:
-            if len(self.operations) >= self.max_concurrent_operations:
+            # Only unfinished operations count; finished ones are kept for operation_timeout
+            active = sum(info.status in (OperationStatus.PENDING, OperationStatus.RUNNING)
+                         for _, info in self.operations.values())
+            if active >= self.max_concurrent_operations:
                 raise RuntimeError(
                     f"Maximum concurrent operations ({self.max_concurrent_operations}) exceeded"
                 )
@@ -263,6 +266,11 @@ class AsyncOperationManager:
                     "metadata": info.metadata,
                 })
             return result
+
+    def not_found_text(self, operation_id: str) -> str:
+        """Answer for an unknown operation ID; finished operations are dropped after operation_timeout."""
+        return (f"Operation {operation_id} not found: unknown, or removed "
+                f"{self.operation_timeout:.0f} s after it finished.")
 
     async def _cleanup_loop(self):
         """Periodically cleanup completed operations."""
