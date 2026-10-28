@@ -330,6 +330,18 @@ class MoveItWrapper:
             logger.warning(f"Planning failed for group '{group_name}'")
             return None
 
+    def trajectory_end(self, plan_result: Any) -> Optional[Dict[str, Any]]:
+        """Joint names, end positions and moves of a plan's trajectory; None if it has none."""
+        try:
+            trajectory = plan_result.trajectory.get_robot_trajectory_msg().joint_trajectory
+        except AttributeError:
+            return None
+        if not trajectory.points:
+            return None
+        start, end = trajectory.points[0].positions, trajectory.points[-1].positions
+        return {"joint_names": list(trajectory.joint_names), "joint_positions": list(end),
+                "deltas": [e - s for s, e in zip(start, end)]}
+
     def plan_to_joint_state(
         self,
         group_name: str,
