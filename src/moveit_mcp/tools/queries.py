@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from ..moveit_wrapper import MoveItWrapper
+from .errors import log_tool_error
 
 try:
     from geometry_msgs.msg import Pose
@@ -53,7 +54,7 @@ def get_query_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             return [TextContent(type="text", text=result_text)]
 
         except Exception as e:
-            logger.error(f"Error in get_current_joint_state: {e}", exc_info=True)
+            log_tool_error(logger, "get_current_joint_state", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def get_current_pose_handler(arguments: dict) -> list:
@@ -88,7 +89,7 @@ def get_query_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             return [TextContent(type="text", text=result_text)]
 
         except Exception as e:
-            logger.error(f"Error in get_current_pose: {e}", exc_info=True)
+            log_tool_error(logger, "get_current_pose", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def compute_fk_handler(arguments: dict) -> list:
@@ -125,7 +126,7 @@ def get_query_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             return [TextContent(type="text", text=result_text)]
 
         except Exception as e:
-            logger.error(f"Error in compute_fk: {e}", exc_info=True)
+            log_tool_error(logger, "compute_fk", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def compute_ik_handler(arguments: dict) -> list:
@@ -184,7 +185,7 @@ def get_query_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
                 ]
 
         except Exception as e:
-            logger.error(f"Error in compute_ik: {e}", exc_info=True)
+            log_tool_error(logger, "compute_ik", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def list_planning_groups_handler(arguments: dict) -> list:
@@ -205,7 +206,7 @@ def get_query_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
             return [TextContent(type="text", text=result_text)]
 
         except Exception as e:
-            logger.error(f"Error in list_planning_groups: {e}", exc_info=True)
+            log_tool_error(logger, "list_planning_groups", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     # Define tool specifications
