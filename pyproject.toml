@@ -26,7 +26,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "mcp>=0.9.0",
+    "mcp>=1.0,<2",  # mcp 2.x dropped Server.list_tools(), which tools/registry.py uses
     "pyyaml>=6.0",
     "starlette>=0.27.0",
     "uvicorn>=0.23.0",
