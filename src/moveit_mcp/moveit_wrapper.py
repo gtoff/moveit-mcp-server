@@ -588,8 +588,16 @@ class MoveItWrapper:
             robot_state.update()
             return scene.is_state_colliding(robot_state, group_name)
 
+    def _scene_frame(self, scene, frame_id: Optional[str]) -> str:
+        """Caller's frame, else the planning frame; unknown frames are refused."""
+        if not frame_id:
+            return scene.planning_frame
+        if not scene.knows_frame_transform(frame_id):
+            raise ValueError(f"Unknown frame '{frame_id}' (planning frame: {scene.planning_frame})")
+        return frame_id
+
     def add_collision_box(
-        self, object_id: str, pose: Pose, dimensions: List[float], frame_id: str = "world"
+        self, object_id: str, pose: Pose, dimensions: List[float], frame_id: Optional[str] = None
     ):
         """
         Add a box collision object to the planning scene.
@@ -598,10 +606,9 @@ class MoveItWrapper:
             object_id: Unique object ID
             pose: Pose of the box
             dimensions: [x, y, z] dimensions in meters
-            frame_id: Reference frame
+            frame_id: Reference frame (default: the planning frame)
         """
         collision_object = CollisionObject()
-        collision_object.header.frame_id = frame_id
         collision_object.id = object_id
 
         box = SolidPrimitive()
@@ -613,13 +620,14 @@ class MoveItWrapper:
         collision_object.operation = CollisionObject.ADD
 
         with self.planning_scene_monitor.read_write() as scene:
+            collision_object.header.frame_id = self._scene_frame(scene, frame_id)
             scene.apply_collision_object(collision_object)
 
         self._collision_object_ids.add(object_id)
         logger.info(f"Added collision box '{object_id}' to planning scene")
 
     def add_collision_sphere(
-        self, object_id: str, pose: Pose, radius: float, frame_id: str = "world"
+        self, object_id: str, pose: Pose, radius: float, frame_id: Optional[str] = None
     ):
         """
         Add a sphere collision object to the planning scene.
@@ -628,10 +636,9 @@ class MoveItWrapper:
             object_id: Unique object ID
             pose: Center pose of the sphere
             radius: Radius in meters
-            frame_id: Reference frame
+            frame_id: Reference frame (default: the planning frame)
         """
         collision_object = CollisionObject()
-        collision_object.header.frame_id = frame_id
         collision_object.id = object_id
 
         sphere = SolidPrimitive()
@@ -643,6 +650,7 @@ class MoveItWrapper:
         collision_object.operation = CollisionObject.ADD
 
         with self.planning_scene_monitor.read_write() as scene:
+            collision_object.header.frame_id = self._scene_frame(scene, frame_id)
             scene.apply_collision_object(collision_object)
 
         self._collision_object_ids.add(object_id)
