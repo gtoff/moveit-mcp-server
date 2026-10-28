@@ -57,7 +57,9 @@ def get_execution_tools(
             trajectory = None
             if plan_operation_id:
                 plan_status = await op_manager.get_operation_status(plan_operation_id)
-                if plan_status and plan_status["status"] == "completed":
+                if plan_status is None:
+                    return [TextContent(type="text", text=op_manager.not_found_text(plan_operation_id) + " Plan again.")]
+                if plan_status["status"] == "completed":
                     trajectory = plan_status["result"]
             else:
                 trajectory = _last_plan["trajectory"]
@@ -106,7 +108,7 @@ def get_execution_tools(
             status = await op_manager.get_operation_status(operation_id)
 
             if status is None:
-                return [TextContent(type="text", text=f"Operation {operation_id} not found")]
+                return [TextContent(type="text", text=op_manager.not_found_text(operation_id))]
 
             result_text = f"Operation: {operation_id}\n"
             result_text += f"Status: {status['status']}\n"
