@@ -32,8 +32,9 @@ execution:
   execution_timeout: 30.0
 
 mcp_server:
-  # Maximum time for async operations before cleanup
-  operation_timeout: 60.0
+  # Seconds a finished operation (a plan) is kept before cleanup; an agent may think for minutes
+  # between plan and execute
+  operation_timeout: 600.0
   # Maximum concurrent async operations
   max_concurrent_operations: 10
   # Rate for updating dynamic resources (Hz)

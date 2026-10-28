@@ -213,7 +213,7 @@ def get_planning_tools(
             status = await op_manager.get_operation_status(operation_id)
 
             if status is None:
-                return [TextContent(type="text", text=f"Operation {operation_id} not found")]
+                return [TextContent(type="text", text=op_manager.not_found_text(operation_id) + " Plan again.")]
 
             result_text = f"Operation: {operation_id}\n"
             result_text += f"Status: {status['status']}\n"
