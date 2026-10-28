@@ -11,7 +11,7 @@ try:
     import rclpy
     import numpy as np
     from scipy.spatial.transform import Rotation
-    from moveit.planning import MoveItPy, PlanningComponent
+    from moveit.planning import MoveItPy, PlanningComponent, PlanRequestParameters
     from moveit.core.robot_state import RobotState
     from geometry_msgs.msg import Pose, PoseStamped
     from moveit_msgs.msg import CollisionObject, PlanningScene
@@ -277,6 +277,14 @@ class MoveItWrapper:
         else:
             raise ValueError(f"No links found for planning group '{group_name}'")
 
+    def _plan(self, planning_component: Any, planner_id: Optional[str]) -> Any:
+        """Plan with the configured request parameters; a given planner_id replaces their planner."""
+        if not planner_id:
+            return planning_component.plan()
+        params = PlanRequestParameters(self.moveit, "")  # "" reads the config's top-level plan_request_params
+        params.planner_id = planner_id
+        return planning_component.plan(single_plan_parameters=params)
+
     def plan_to_pose(
         self,
         group_name: str,
@@ -315,13 +323,9 @@ class MoveItWrapper:
         # Set goal
         planning_component.set_goal_state(pose_stamped_msg=pose_stamped, pose_link=ee_link)
 
-        # Configure planner
-        if planner_id:
-            planning_component.set_planner_id(planner_id)
-
         # Plan
         logger.info(f"Planning to pose for group '{group_name}'")
-        plan_result = planning_component.plan()
+        plan_result = self._plan(planning_component, planner_id)
 
         if plan_result:
             logger.info(f"Planning succeeded for group '{group_name}'")
@@ -374,13 +378,9 @@ class MoveItWrapper:
         # Set goal
         planning_component.set_goal_state(robot_state=robot_state)
 
-        # Configure planner
-        if planner_id:
-            planning_component.set_planner_id(planner_id)
-
         # Plan
         logger.info(f"Planning to joint state for group '{group_name}'")
-        plan_result = planning_component.plan()
+        plan_result = self._plan(planning_component, planner_id)
 
         if plan_result:
             logger.info(f"Planning succeeded for group '{group_name}'")
@@ -414,13 +414,9 @@ class MoveItWrapper:
         # Set goal to named state
         planning_component.set_goal_state(configuration_name=state_name)
 
-        # Configure planner
-        if planner_id:
-            planning_component.set_planner_id(planner_id)
-
         # Plan
         logger.info(f"Planning to named state '{state_name}' for group '{group_name}'")
-        plan_result = planning_component.plan()
+        plan_result = self._plan(planning_component, planner_id)
 
         if plan_result:
             logger.info(f"Planning succeeded for group '{group_name}'")
