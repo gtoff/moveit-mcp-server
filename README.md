@@ -139,6 +139,8 @@ moveit-mcp-server --config config/summit_xl_mcp_server.yaml --transport http --p
 ```
 
 > **Note:** Summit XL uses `use_sim_time: true` for Gazebo simulation. Ensure your simulation is publishing `/clock`.
+> The warning `config/summit_xl.urdf.xacro doesn't exist ... loaded from /robot_description topic` is expected:
+> the robot model comes from `/robot_description`, which on the real robot carries the arm's calibration.
 
 ### Connecting Claude Desktop
 

@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 from ..async_ops import AsyncOperationManager, OperationType
 from ..moveit_wrapper import MoveItWrapper
+from .errors import log_tool_error
 
 try:
     from mcp.server import Server
@@ -87,7 +88,7 @@ def get_execution_tools(
             ]
 
         except Exception as e:
-            logger.error(f"Error in execute_plan: {e}", exc_info=True)
+            log_tool_error(logger, "execute_plan", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def get_execution_status_handler(arguments: dict) -> list:
@@ -125,7 +126,7 @@ def get_execution_tools(
             return [TextContent(type="text", text=result_text)]
 
         except Exception as e:
-            logger.error(f"Error in get_execution_status: {e}", exc_info=True)
+            log_tool_error(logger, "get_execution_status", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def stop_execution_handler(arguments: dict) -> list:
@@ -159,7 +160,7 @@ def get_execution_tools(
                 ]
 
         except Exception as e:
-            logger.error(f"Error in stop_execution: {e}", exc_info=True)
+            log_tool_error(logger, "stop_execution", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def plan_and_execute_handler(arguments: dict) -> list:
@@ -250,7 +251,7 @@ def get_execution_tools(
             ]
 
         except Exception as e:
-            logger.error(f"Error in plan_and_execute: {e}", exc_info=True)
+            log_tool_error(logger, "plan_and_execute", e)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     # Define tool specifications
