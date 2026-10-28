@@ -32,17 +32,13 @@ def get_execution_tools(
         if server_instance and not server_instance.is_initialized():
             raise RuntimeError("Server not fully initialized. Please wait for initialization to complete.")
 
-    # Store the last successful plan for execution
-    # In a production system, you'd want better trajectory management
-    _last_plan = {"trajectory": None}
-
     # Define individual tool handler functions
     async def execute_plan_handler(arguments: dict) -> list:
         """
-        Execute the last planned trajectory.
+        Execute a planned trajectory.
 
         Args (from arguments dict):
-            operation_id: Optional - specific plan operation ID to execute
+            operation_id: Operation ID of the plan to execute (from plan_to_*)
             controllers: Optional list of controller names
 
         Returns:
@@ -50,7 +46,7 @@ def get_execution_tools(
         """
         try:
             check_initialized()
-            plan_operation_id = arguments.get("operation_id")
+            plan_operation_id = arguments["operation_id"]
             controllers = arguments.get("controllers")
 
             # Get the trajectory to execute
@@ -61,8 +57,6 @@ def get_execution_tools(
                     return [TextContent(type="text", text=op_manager.not_found_text(plan_operation_id) + " Plan again.")]
                 if plan_status["status"] == "completed":
                     trajectory = plan_status["result"]
-            else:
-                trajectory = _last_plan["trajectory"]
 
             if not trajectory:
                 return [
@@ -265,7 +259,7 @@ def get_execution_tools(
                 "properties": {
                     "operation_id": {
                         "type": "string",
-                        "description": "Optional plan operation ID to execute",
+                        "description": "Operation ID of the plan to execute (from plan_to_*)",
                     },
                     "controllers": {
                         "type": "array",
@@ -273,6 +267,7 @@ def get_execution_tools(
                         "description": "Optional controller names",
                     },
                 },
+                "required": ["operation_id"],
             },
         ),
         Tool(
