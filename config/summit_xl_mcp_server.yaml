@@ -12,6 +12,8 @@ planning:
   default_planner: "RRTConnect"
   # Planning timeout in seconds
   default_timeout: 5.0
+  # Workspace box, min x, y, z, max x, y, z in m, planning frame
+  workspace: [-2.0, -2.0, -1.0, 2.0, 2.0, 2.0]
   # Number of planning attempts
   planning_attempts: 10
   # Planning groups to expose (from summit_xl.srdf)
