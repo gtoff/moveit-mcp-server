@@ -51,6 +51,10 @@ def get_execution_tools(
         """
         try:
             check_initialized()
+            # A second motion would queue behind the running one, and its stop would halt the running one
+            running = await op_manager.running_execution()
+            if running:
+                return [TextContent(type="text", text=f"Error: execution {running} is still running; stop it or wait.")]
             plan_operation_id = arguments.get("operation_id")
             controllers = arguments.get("controllers")
 
@@ -183,6 +187,10 @@ def get_execution_tools(
         """
         try:
             check_initialized()
+            # A second motion would queue behind the running one, and its stop would halt the running one
+            running = await op_manager.running_execution()
+            if running:
+                return [TextContent(type="text", text=f"Error: execution {running} is still running; stop it or wait.")]
             group = arguments["group"]
             target_type = arguments["target_type"]
             target = arguments["target"]

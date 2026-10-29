@@ -74,6 +74,14 @@ async def test_stop_execution_stops_the_motion():
     assert moveit.stopped.is_set()
 
 
+async def test_second_execution_is_refused_while_one_runs():
+    moveit, ops = FakeMoveIt(), AsyncOperationManager()
+    handlers, exec_id = await _start_execution(moveit, ops)
+    text = (await handlers["execute_plan"]({"operation_id": "any"}))[0].text
+    assert text.startswith("Error:") and exec_id in text
+    moveit.stop_execution()
+
+
 def test_wrapper_stops_through_the_trajectory_execution_manager():
     calls = []
     tem = types.SimpleNamespace(stop_execution=lambda auto_clear: calls.append(auto_clear))
