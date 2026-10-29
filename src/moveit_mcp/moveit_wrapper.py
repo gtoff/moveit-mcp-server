@@ -277,12 +277,16 @@ class MoveItWrapper:
         else:
             raise ValueError(f"No links found for planning group '{group_name}'")
 
-    def _plan(self, planning_component: Any, planner_id: Optional[str]) -> Any:
-        """Plan with the configured request parameters; a given planner_id replaces their planner."""
-        if not planner_id:
+    def _plan(self, planning_component: Any, planner_id: Optional[str],
+              planning_time: Optional[float] = None) -> Any:
+        """Plan with the configured request parameters; a given planner_id or planning_time replaces theirs."""
+        if not planner_id and planning_time is None:
             return planning_component.plan()
         params = PlanRequestParameters(self.moveit, "")  # "" reads the config's top-level plan_request_params
-        params.planner_id = planner_id
+        if planner_id:
+            params.planner_id = planner_id
+        if planning_time is not None:
+            params.planning_time = planning_time
         return planning_component.plan(single_plan_parameters=params)
 
     def plan_to_pose(
@@ -325,7 +329,7 @@ class MoveItWrapper:
 
         # Plan
         logger.info(f"Planning to pose for group '{group_name}'")
-        plan_result = self._plan(planning_component, planner_id)
+        plan_result = self._plan(planning_component, planner_id, planning_time)
 
         if plan_result:
             logger.info(f"Planning succeeded for group '{group_name}'")
@@ -368,7 +372,7 @@ class MoveItWrapper:
 
         # Plan
         logger.info(f"Planning to joint state for group '{group_name}'")
-        plan_result = self._plan(planning_component, planner_id)
+        plan_result = self._plan(planning_component, planner_id, planning_time)
 
         if plan_result:
             logger.info(f"Planning succeeded for group '{group_name}'")
