@@ -140,6 +140,8 @@ moveit-mcp-server --config config/summit_xl_mcp_server.yaml --transport http --p
 
 > **Note:** Summit XL uses `use_sim_time: true` for Gazebo simulation. Ensure your simulation is publishing `/clock`.
 > On the real robot, start with `--no-use-sim-time` (there is no `/clock`).
+> `--no-sensors-3d` starts without the depth sensors (octomap) of the MoveIt config, e.g. when the depth images
+> reach the server too late to be useful.
 
 ### Connecting Claude Desktop
 
