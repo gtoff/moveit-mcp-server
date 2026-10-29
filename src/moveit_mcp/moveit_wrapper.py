@@ -239,9 +239,12 @@ class MoveItWrapper:
                 )
 
             logger.debug(f"Creating planning component for group: {group_name}")
-            self.planning_components[group_name] = self.moveit.get_planning_component(
-                group_name
-            )
+            component = self.moveit.get_planning_component(group_name)
+            # Bounds only a mobile root joint, not the arm; without it OMPL warns on every plan
+            workspace = self.config.get("planning", {}).get("workspace")
+            if workspace:
+                component.set_workspace(*workspace)
+            self.planning_components[group_name] = component
 
         return self.planning_components[group_name]
 
