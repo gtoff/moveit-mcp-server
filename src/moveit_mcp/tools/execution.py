@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 from ..async_ops import AsyncOperationManager, OperationType
 from ..moveit_wrapper import MoveItWrapper
+from .worker import on_execute_thread
 
 try:
     from mcp.server import Server
@@ -50,6 +51,10 @@ def get_execution_tools(
         """
         try:
             check_initialized()
+            # A second motion would queue behind the running one, and its stop would halt the running one
+            running = await op_manager.running_execution()
+            if running:
+                return [TextContent(type="text", text=f"Error: execution {running} is still running; stop it or wait.")]
             plan_operation_id = arguments.get("operation_id")
             controllers = arguments.get("controllers")
 
@@ -72,7 +77,7 @@ def get_execution_tools(
 
             # Submit async execution operation
             async def execute_fn():
-                return moveit.execute_trajectory(trajectory, controllers)
+                return await on_execute_thread(moveit.execute_trajectory, trajectory, controllers)
 
             operation_id = await op_manager.submit_operation(
                 execute_fn, OperationType.EXECUTION, metadata={"controllers": controllers}
@@ -141,6 +146,10 @@ def get_execution_tools(
         try:
             check_initialized()
             operation_id = arguments["operation_id"]
+            status = await op_manager.get_operation_status(operation_id)
+            # The motion runs on the execute thread: cancelling the task alone would leave the arm moving
+            if status and status["status"] == "running" and status["type"] != "planning":
+                moveit.stop_execution()
             success = await op_manager.cancel_operation(operation_id)
 
             if success:
@@ -178,6 +187,10 @@ def get_execution_tools(
         """
         try:
             check_initialized()
+            # A second motion would queue behind the running one, and its stop would halt the running one
+            running = await op_manager.running_execution()
+            if running:
+                return [TextContent(type="text", text=f"Error: execution {running} is still running; stop it or wait.")]
             group = arguments["group"]
             target_type = arguments["target_type"]
             target = arguments["target"]
@@ -232,7 +245,7 @@ def get_execution_tools(
                     raise RuntimeError("Planning failed")
 
                 # Execute
-                success = moveit.execute_trajectory(plan_result)
+                success = await on_execute_thread(moveit.execute_trajectory, plan_result)
                 return success
 
             operation_id = await op_manager.submit_operation(
