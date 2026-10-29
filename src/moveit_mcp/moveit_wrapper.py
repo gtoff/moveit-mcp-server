@@ -449,6 +449,10 @@ class MoveItWrapper:
 
         return success
 
+    def stop_execution(self) -> None:
+        """Stop the running trajectory in the controllers; a blocked execute() then returns False."""
+        self.moveit.get_trajectory_execution_manager().stop_execution(True)
+
     def get_current_state(self, group_name: str) -> Dict[str, Any]:
         """
         Get current robot state for a group.

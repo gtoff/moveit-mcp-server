@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 from ..async_ops import AsyncOperationManager, OperationType
 from ..moveit_wrapper import MoveItWrapper
+from .worker import LATCHED_TEXT, stop_latched
 
 try:
     from geometry_msgs.msg import Pose
@@ -51,6 +52,8 @@ def get_planning_tools(
         """
         try:
             check_initialized()
+            if stop_latched.is_set():
+                return [TextContent(type="text", text=LATCHED_TEXT)]
             group = arguments["group"]
             position = arguments["position"]
             orientation = arguments["orientation"]
@@ -122,6 +125,8 @@ def get_planning_tools(
         """
         try:
             check_initialized()
+            if stop_latched.is_set():
+                return [TextContent(type="text", text=LATCHED_TEXT)]
             group = arguments["group"]
             joint_positions = arguments["joint_positions"]
             planner_id = arguments.get("planner_id")
@@ -168,6 +173,8 @@ def get_planning_tools(
         """
         try:
             check_initialized()
+            if stop_latched.is_set():
+                return [TextContent(type="text", text=LATCHED_TEXT)]
             group = arguments["group"]
             state_name = arguments["state_name"]
             planner_id = arguments.get("planner_id")
