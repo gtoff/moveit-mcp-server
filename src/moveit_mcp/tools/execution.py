@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 from ..async_ops import AsyncOperationManager, OperationType
 from ..moveit_wrapper import MoveItWrapper
+from .worker import on_execute_thread
 from .errors import log_tool_error
 
 try:
@@ -69,7 +70,7 @@ def get_execution_tools(
 
             # Submit async execution operation
             async def execute_fn():
-                return moveit.execute_trajectory(trajectory, controllers)
+                return await on_execute_thread(moveit.execute_trajectory, trajectory, controllers)
 
             operation_id = await op_manager.submit_operation(
                 execute_fn, OperationType.EXECUTION, metadata={"controllers": controllers}
@@ -138,6 +139,10 @@ def get_execution_tools(
         try:
             check_initialized()
             operation_id = arguments["operation_id"]
+            status = await op_manager.get_operation_status(operation_id)
+            # The motion runs on the execute thread: cancelling the task alone would leave the arm moving
+            if status and status["status"] == "running" and status["type"] != "planning":
+                moveit.stop_execution()
             success = await op_manager.cancel_operation(operation_id)
 
             if success:
@@ -229,7 +234,7 @@ def get_execution_tools(
                     raise RuntimeError("Planning failed")
 
                 # Execute
-                success = moveit.execute_trajectory(plan_result)
+                success = await on_execute_thread(moveit.execute_trajectory, plan_result)
                 return success
 
             operation_id = await op_manager.submit_operation(
