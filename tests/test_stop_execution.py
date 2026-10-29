@@ -28,6 +28,7 @@ except ImportError:
     sys.modules["geometry_msgs.msg"] = msg
 
 from moveit_mcp.async_ops import AsyncOperationManager, OperationType  # noqa: E402
+import moveit_mcp.moveit_wrapper as wrapper  # noqa: E402
 from moveit_mcp.tools.execution import get_execution_tools  # noqa: E402
 
 
@@ -71,3 +72,19 @@ async def test_stop_execution_stops_the_motion():
     handlers, exec_id = await _start_execution(moveit, ops)
     await handlers["stop_execution"]({"operation_id": exec_id})
     assert moveit.stopped.is_set()
+
+
+async def test_second_execution_is_refused_while_one_runs():
+    moveit, ops = FakeMoveIt(), AsyncOperationManager()
+    handlers, exec_id = await _start_execution(moveit, ops)
+    text = (await handlers["execute_plan"]({"operation_id": "any"}))[0].text
+    assert text.startswith("Error:") and exec_id in text
+    moveit.stop_execution()
+
+
+def test_wrapper_stops_through_the_trajectory_execution_manager():
+    calls = []
+    tem = types.SimpleNamespace(stop_execution=lambda auto_clear: calls.append(auto_clear))
+    moveit = types.SimpleNamespace(get_trajectory_execution_manager=lambda: tem)
+    wrapper.MoveItWrapper.stop_execution(types.SimpleNamespace(moveit=moveit))
+    assert calls == [True]

@@ -244,6 +244,15 @@ class AsyncOperationManager:
             logger.info(f"Operation {operation_id} cancellation requested")
             return True
 
+    async def running_execution(self) -> Optional[str]:
+        """ID of an unfinished execution or plan-and-execute; the arm runs one motion at a time."""
+        async with self._lock:
+            for operation_id, (_, info) in self.operations.items():
+                if (info.operation_type in (OperationType.EXECUTION, OperationType.COMBINED)
+                        and info.status in (OperationStatus.PENDING, OperationStatus.RUNNING)):
+                    return operation_id
+        return None
+
     async def list_operations(self) -> list[Dict[str, Any]]:
         """
         List all operations.
