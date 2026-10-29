@@ -1,4 +1,4 @@
-"""A per-call planner_id reaches the planner through PlanRequestParameters. Runs without ROS."""
+"""A per-call planner_id and planning_time reach the planner through PlanRequestParameters. Runs without ROS."""
 
 import sys
 import types
@@ -55,3 +55,11 @@ def test_without_planner_id_the_config_applies():
     component = FakeComponent()
     wrapper.MoveItWrapper._plan(types.SimpleNamespace(moveit=None), component, None)
     assert component.calls == [None]
+
+
+def test_planning_time_goes_through_request_parameters(monkeypatch):
+    monkeypatch.setattr(wrapper, "PlanRequestParameters", FakeParams, raising=False)
+    component = FakeComponent()
+    wrapper.MoveItWrapper._plan(types.SimpleNamespace(moveit=None), component, None, 1.5)
+    (params,) = component.calls
+    assert params.planning_time == 1.5 and params.planner_id == "from config"
