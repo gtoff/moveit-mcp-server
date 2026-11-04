@@ -1,6 +1,7 @@
 """stop_arm stops and latches, resume_arm releases. Runs without ROS."""
 
 import asyncio
+import re
 import threading
 
 import pytest
@@ -48,6 +49,36 @@ async def test_latched_refuses_motions_and_plans_until_resume():
     assert text == worker.LATCHED_TEXT
     assert (await handlers["resume_arm"]({}))[0].text == "Arm resumed"
     assert "Execution started" in (await handlers["execute_plan"]({"operation_id": plan_id}))[0].text
+    moveit.stop_execution()
+
+
+async def test_plans_are_refused_while_the_arm_moves():
+    moveit, ops = FakeMoveIt(), AsyncOperationManager()
+    _, exec_id = await _start_execution(moveit, ops)
+    _, planning = get_planning_tools(moveit, ops)
+    calls = {
+        "plan_to_pose": {"group": "arm", "position": [0.5, 0.0, 0.5], "orientation": [0.0, 0.0, 0.0, 1.0]},
+        "plan_to_joint_state": {"group": "arm", "joint_positions": [0.0]},
+        "plan_to_named_state": {"group": "arm", "state_name": "home"},
+    }
+    for tool, args in calls.items():
+        text = (await planning[tool](args))[0].text
+        assert text.startswith("Error:") and exec_id in text, tool
+    moveit.stop_execution()
+
+
+async def test_plan_fails_if_a_motion_started_before_it_ran():
+    moveit, ops = FakeMoveIt(), AsyncOperationManager()
+    _, handlers = get_execution_tools(moveit, ops)
+    _, planning = get_planning_tools(moveit, ops)
+    plan_id = await _plan_id(ops)
+    # The handler's check passes and the plan is queued as a task; a motion starts before that task runs
+    text = (await planning["plan_to_joint_state"]({"group": "arm", "joint_positions": [0.0]}))[0].text
+    queued_id = re.search(r"Operation ID: (\S+)", text).group(1)
+    await handlers["execute_plan"]({"operation_id": plan_id})
+    await ops.wait_for_operation(queued_id)
+    status = await ops.get_operation_status(queued_id)
+    assert status["status"] == "failed" and "plan after it ends" in status["error"]
     moveit.stop_execution()
 
 

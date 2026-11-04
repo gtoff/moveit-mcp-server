@@ -46,6 +46,9 @@ class FakeMoveIt:
 
 
 class FakeOpManager:
+    async def running_execution(self):
+        return None
+
     async def submit_operation(self, fn, operation_type, metadata=None):
         await fn()
         return "op-1"
