@@ -1,10 +1,13 @@
 """Execution tool implementations."""
 
+import asyncio
 import logging
+import time
 from typing import Any, Dict, Optional
 
 from ..async_ops import AsyncOperationManager, OperationType
 from ..moveit_wrapper import MoveItWrapper
+from .worker import LATCHED_TEXT, STOPPED, executing, latch, on_execute_thread, stop_latched
 
 try:
     from mcp.server import Server
@@ -50,6 +53,12 @@ def get_execution_tools(
         """
         try:
             check_initialized()
+            if stop_latched.is_set():
+                return [TextContent(type="text", text=LATCHED_TEXT)]
+            # A second motion would queue behind the running one, and its stop would halt the running one
+            running = await op_manager.running_execution()
+            if running:
+                return [TextContent(type="text", text=f"Error: execution {running} is still running; stop it or wait.")]
             plan_operation_id = arguments.get("operation_id")
             controllers = arguments.get("controllers")
 
@@ -72,7 +81,7 @@ def get_execution_tools(
 
             # Submit async execution operation
             async def execute_fn():
-                return moveit.execute_trajectory(trajectory, controllers)
+                return await on_execute_thread(moveit.execute_trajectory, trajectory, controllers)
 
             operation_id = await op_manager.submit_operation(
                 execute_fn, OperationType.EXECUTION, metadata={"controllers": controllers}
@@ -141,6 +150,10 @@ def get_execution_tools(
         try:
             check_initialized()
             operation_id = arguments["operation_id"]
+            status = await op_manager.get_operation_status(operation_id)
+            # The motion runs on the execute thread: cancelling the task alone would leave the arm moving
+            if status and status["status"] == "running" and status["type"] != "planning":
+                moveit.stop_execution()
             success = await op_manager.cancel_operation(operation_id)
 
             if success:
@@ -162,6 +175,36 @@ def get_execution_tools(
             logger.error(f"Error in stop_execution: {e}", exc_info=True)
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
+    # stop_arm and resume_arm one at a time, so a resume cannot clear the latch halfway through a stop
+    arm_lock = asyncio.Lock()
+
+    async def stop_arm_handler(arguments: dict) -> list:
+        """Latch the stop, stop the running motion, and wait (at most 10 s) until nothing executes."""
+        try:
+            check_initialized()
+            async with arm_lock:
+                latch()
+                running = await op_manager.running_execution()
+                if running:
+                    await op_manager.fail_operation(running, STOPPED)
+                deadline = time.monotonic() + 10.0
+                # Repeated: an execute() that started just before the latch reaches the controllers a moment later
+                while executing.is_set():
+                    if time.monotonic() > deadline:
+                        return [TextContent(type="text", text="Error: the arm still executes 10 s after stop_arm.")]
+                    moveit.stop_execution()
+                    await asyncio.sleep(0.05)
+            return [TextContent(type="text", text="Arm stop confirmed")]
+        except Exception as e:
+            logger.error(f"Error in stop_arm: {e}", exc_info=True)
+            return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+    async def resume_arm_handler(arguments: dict) -> list:
+        """Clear the stop latch."""
+        async with arm_lock:
+            stop_latched.clear()
+        return [TextContent(type="text", text="Arm resumed")]
+
     async def plan_and_execute_handler(arguments: dict) -> list:
         """
         Plan and execute a motion in one operation.
@@ -178,6 +221,12 @@ def get_execution_tools(
         """
         try:
             check_initialized()
+            if stop_latched.is_set():
+                return [TextContent(type="text", text=LATCHED_TEXT)]
+            # A second motion would queue behind the running one, and its stop would halt the running one
+            running = await op_manager.running_execution()
+            if running:
+                return [TextContent(type="text", text=f"Error: execution {running} is still running; stop it or wait.")]
             group = arguments["group"]
             target_type = arguments["target_type"]
             target = arguments["target"]
@@ -232,7 +281,7 @@ def get_execution_tools(
                     raise RuntimeError("Planning failed")
 
                 # Execute
-                success = moveit.execute_trajectory(plan_result)
+                success = await on_execute_thread(moveit.execute_trajectory, plan_result)
                 return success
 
             operation_id = await op_manager.submit_operation(
@@ -336,8 +385,26 @@ def get_execution_tools(
         ),
     ]
 
+    tools += [
+        Tool(
+            name="stop_arm",
+            description=(
+                "Stop the arm now and keep it stopped: ends the running motion, and refuses new plans and "
+                "motions until resume_arm. Answers 'Arm stop confirmed' once nothing executes"
+            ),
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        Tool(
+            name="resume_arm",
+            description="Allow plans and motions again after stop_arm",
+            inputSchema={"type": "object", "properties": {}},
+        ),
+    ]
+
     # Map handlers
     handlers = {
+        "stop_arm": stop_arm_handler,
+        "resume_arm": resume_arm_handler,
         "execute_plan": execute_plan_handler,
         "get_execution_status": get_execution_status_handler,
         "stop_execution": stop_execution_handler,

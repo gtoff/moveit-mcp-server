@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 from ..async_ops import AsyncOperationManager, OperationType
 from ..moveit_wrapper import MoveItWrapper
+from .worker import LATCHED_TEXT, stop_latched
 
 try:
     from geometry_msgs.msg import Pose
@@ -33,6 +34,23 @@ def get_planning_tools(
         if server_instance and not server_instance.is_initialized():
             raise RuntimeError("Server not fully initialized. Please wait for initialization to complete.")
 
+    async def refusal() -> Optional[str]:
+        """Why a plan is refused, else None. Planning blocks the event loop, so a stop_arm sent
+        during a running motion would wait behind it for up to the planning timeout."""
+        if stop_latched.is_set():
+            return LATCHED_TEXT
+        running = await op_manager.running_execution()
+        if running:
+            return f"Error: execution {running} is still running; plan after it ends or stop it."
+        return None
+
+    async def refuse_if_moving():
+        """Checked again just before planning: the plan runs as its own task, after the handler's check,
+        and no await follows this one before the blocking plan call."""
+        running = await op_manager.running_execution()
+        if running:
+            raise RuntimeError(f"execution {running} started before this plan could run; plan after it ends")
+
     # Define individual tool handler functions
     async def plan_to_pose_handler(arguments: dict) -> list:
         """
@@ -51,6 +69,9 @@ def get_planning_tools(
         """
         try:
             check_initialized()
+            text = await refusal()
+            if text:
+                return [TextContent(type="text", text=text)]
             group = arguments["group"]
             position = arguments["position"]
             orientation = arguments["orientation"]
@@ -81,6 +102,7 @@ def get_planning_tools(
 
             # Submit async operation
             async def plan_fn():
+                await refuse_if_moving()
                 return moveit.plan_to_pose(
                     group_name=group,
                     target_pose=target_pose,
@@ -122,6 +144,9 @@ def get_planning_tools(
         """
         try:
             check_initialized()
+            text = await refusal()
+            if text:
+                return [TextContent(type="text", text=text)]
             group = arguments["group"]
             joint_positions = arguments["joint_positions"]
             planner_id = arguments.get("planner_id")
@@ -129,6 +154,7 @@ def get_planning_tools(
 
             # Submit async operation
             async def plan_fn():
+                await refuse_if_moving()
                 return moveit.plan_to_joint_state(
                     group_name=group,
                     joint_positions=joint_positions,
@@ -168,12 +194,16 @@ def get_planning_tools(
         """
         try:
             check_initialized()
+            text = await refusal()
+            if text:
+                return [TextContent(type="text", text=text)]
             group = arguments["group"]
             state_name = arguments["state_name"]
             planner_id = arguments.get("planner_id")
 
             # Submit async operation
             async def plan_fn():
+                await refuse_if_moving()
                 return moveit.plan_to_named_state(
                     group_name=group, state_name=state_name, planner_id=planner_id
                 )
