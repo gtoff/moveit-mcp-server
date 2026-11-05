@@ -510,9 +510,13 @@ class MoveItWrapper:
         Returns:
             Computed pose
         """
+        # Current state for the other joints; without update() there are no link transforms
         robot_state = RobotState(self.robot_model)
+        with self.planning_scene_monitor.read_only() as scene:
+            robot_state.joint_positions = scene.current_state.joint_positions
         joint_model_group = self.robot_model.get_joint_model_group(group_name)
         robot_state.set_joint_group_positions(group_name, joint_positions)
+        robot_state.update()
 
         if not link_name:
             # Get the last link in the chain (tip link)
