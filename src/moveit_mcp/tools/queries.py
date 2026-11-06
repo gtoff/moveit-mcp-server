@@ -74,7 +74,8 @@ def get_query_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
 
             pose = moveit.get_current_pose(group, link_name)
 
-            result_text = f"Current pose for '{group}':\n"
+            frame = moveit.robot_model.model_frame
+            result_text = f"Current pose for '{group}' in frame '{frame}':\n"
             result_text += f"Position:\n"
             result_text += f"  x: {pose.position.x:.4f} m\n"
             result_text += f"  y: {pose.position.y:.4f} m\n"
@@ -111,7 +112,8 @@ def get_query_tools(moveit: MoveItWrapper, server_instance=None) -> tuple[list, 
 
             pose = moveit.compute_fk(group, joint_positions, link_name)
 
-            result_text = f"Forward kinematics result for '{group}':\n"
+            frame = moveit.robot_model.model_frame
+            result_text = f"Forward kinematics result for '{group}' in frame '{frame}':\n"
             result_text += f"Position:\n"
             result_text += f"  x: {pose.position.x:.4f} m\n"
             result_text += f"  y: {pose.position.y:.4f} m\n"
